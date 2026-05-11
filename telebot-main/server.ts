@@ -525,11 +525,15 @@ const handleIncomingMessage = async (
   const normalizedMsgText = normalizeForKeyword(rawText);
 
   let detectedKeyword = "";
-  const match = settings.responses.find((r) => {
-    const hit = containsKeyword(msgText, r.keyword);
-    if (hit) { detectedKeyword = String(hit); return true; }
-    return false;
-  });
+  const sortedResponses = [...settings.responses].sort(
+    (a, b) => b.keyword.length - a.keyword.length
+  );
+
+  const match = sortedResponses.find((r) => {
+    const hit = containsKeyword(msgText, r.keyword);
+    if (hit) { detectedKeyword = String(hit); return true; }
+    return false;
+  });
 
   if (!match) {
     broadcastLog(
