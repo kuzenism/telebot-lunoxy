@@ -334,9 +334,27 @@ export default function App() {
                 {/* Account list */}
                 {accounts.length > 0 ? (
                   <div>
-                    <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
-                      Akun Anda
-                    </h2>
+                    <div className="flex items-center justify-between mb-3">
+                      <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                        Akun Anda
+                      </h2>
+                      {accounts.length > 0 && (
+                        <div className="flex gap-2">
+                          <button 
+                            onClick={handleStartAll}
+                            className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 text-xs font-semibold rounded-lg transition"
+                          >
+                            ▶ Start All
+                          </button>
+                          <button 
+                            onClick={handleStopAll}
+                            className="px-3 py-1.5 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 text-xs font-semibold rounded-lg transition"
+                          >
+                            ■ Stop All
+                          </button>
+                        </div>
+                      )}
+                    </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                       {accounts.map((acc) => (
                         <AccountCard
