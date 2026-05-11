@@ -525,15 +525,28 @@ const handleIncomingMessage = async (
   const normalizedMsgText = normalizeForKeyword(rawText);
 
   let detectedKeyword = "";
-  const sortedResponses = [...settings.responses].sort(
-    (a, b) => b.keyword.length - a.keyword.length
-  );
+  let match = undefined;
 
-  const match = sortedResponses.find((r) => {
-    const hit = containsKeyword(msgText, r.keyword);
-    if (hit) { detectedKeyword = String(hit); return true; }
-    return false;
-  });
+  // 1. Kumpulkan semua kombinasi keyword (jika ada koma) beserta response aslinya
+  const flattenedResponses: { keyword: string; originalResponse: any }[] = [];
+  settings.responses.forEach((r) => {
+    const parts = (r.keyword || "").split(",").map((p) => p.trim()).filter(Boolean);
+    parts.forEach((part) => {
+      flattenedResponses.push({ keyword: part, originalResponse: r });
+    });
+  });
+
+  // 2. Urutkan dari keyword terpanjang ke terpendek
+  flattenedResponses.sort((a, b) => b.keyword.length - a.keyword.length);
+
+  // 3. Cek match dengan yang paling spesifik (paling panjang) duluan
+  for (const item of flattenedResponses) {
+    if (matchesSingleKeyword(msgText, item.keyword)) {
+      detectedKeyword = item.keyword;
+      match = item.originalResponse;
+      break; // Berhenti di match pertama (yang terpanjang)
+    }
+  }
 
   if (!match) {
     broadcastLog(
