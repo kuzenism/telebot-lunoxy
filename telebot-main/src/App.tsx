@@ -38,6 +38,7 @@ export default function App() {
 
   const [isConnected, setIsConnected] = useState(false);
   const [accounts, setAccounts] = useState<AccountStatus[]>([]);
+  const [isToggling, setIsToggling] = useState(false);
   const [logs, setLogs] = useState<Log[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
 
@@ -188,15 +189,21 @@ export default function App() {
     await loadConfig();
   };
 
-  // --- TAMBAHKAN DUA FUNGSI INI DI SINI ---
-  const handleStartAll = async () => {
-    await fetch("/api/accounts/start-all", { method: "POST" });
-    loadConfig();
-  };
+  // Mengecek apakah SEMUA bot sedang aktif
+  const isAllActive = accounts.length > 0 && accounts.every((acc) => acc.isActive);
 
-  const handleStopAll = async () => {
-    await fetch("/api/accounts/stop-all", { method: "POST" });
-    loadConfig();
+  const handleToggleAll = async () => {
+    setIsToggling(true); // Nyalakan animasi loading
+    try {
+      if (isAllActive) {
+        await fetch("/api/accounts/stop-all", { method: "POST" });
+      } else {
+        await fetch("/api/accounts/start-all", { method: "POST" });
+      }
+      await loadConfig(); // Refresh tampilan
+    } finally {
+      setIsToggling(false); // Matikan animasi loading
+    }
   };
   // ----------------------------------------
 
@@ -339,32 +346,39 @@ export default function App() {
                         Akun Anda
                       </h2>
                       {accounts.length > 0 && (
-                        <div className="flex gap-2">
-                          <button 
-                            onClick={handleStartAll}
-                            className="px-3 py-1.5 bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 text-xs font-semibold rounded-lg transition"
+                        <button
+                          onClick={handleToggleAll}
+                          disabled={isToggling}
+                          className={`relative flex items-center justify-center px-4 py-1.5 overflow-hidden text-xs font-semibold rounded-lg transition-all duration-300 ease-in-out ${
+                            isAllActive
+                              ? "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20"
+                              : "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20"
+                          } ${
+                            isToggling 
+                              ? "opacity-70 cursor-not-allowed" 
+                              : "hover:scale-105 active:scale-95"
+                          }`}
+                        >
+                          {/* Teks Tombol (Hilang saat loading) */}
+                          <span
+                            className={`flex items-center gap-1.5 transition-transform duration-300 ${
+                              isToggling ? "scale-0 opacity-0" : "scale-100 opacity-100"
+                            }`}
                           >
-                            ▶ Start All
-                          </button>
-                          <button 
-                            onClick={handleStopAll}
-                            className="px-3 py-1.5 bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 text-xs font-semibold rounded-lg transition"
-                          >
-                            ■ Stop All
-                          </button>
-                        </div>
+                            {isAllActive ? "■ Stop All" : "▶ Start All"}
+                          </span>
+
+                          {/* Animasi Loading Spinner (Muncul saat diklik) */}
+                          {isToggling && (
+                            <span className="absolute inset-0 flex items-center justify-center">
+                              <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                              </svg>
+                            </span>
+                          )}
+                        </button>
                       )}
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {accounts.map((acc) => (
-                        <AccountCard
-                          key={acc.accountId}
-                          account={acc}
-                          onClick={() => navigate(`/account/${encodeURIComponent(acc.accountId)}`)}
-                        />
-                      ))}
-                    </div>
-                  </div>
                 ) : (
                   <EmptyState onAdd={() => { resetForm(); setShowAddForm(true); }} />
                 )}
