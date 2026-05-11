@@ -451,10 +451,35 @@ const handleIncomingMessage = async (
   if (!settings.isActive || !message) return;
 
   const rawText = String(message.message || "").trim();
-  if (!rawText) return;
+  if (!rawText || message.out) return;
 
-  if (message.out) return;
+  // 1. CEK KEYWORD DULU (Super Cepat)
+  const msgText = rawText.toLowerCase();
+  
+  let detectedKeyword = "";
+  let match = undefined;
 
+  const flattenedResponses: { keyword: string; originalResponse: any }[] = [];
+  settings.responses.forEach((r) => {
+    const parts = (r.keyword || "").split(",").map((p) => p.trim()).filter(Boolean);
+    parts.forEach((part) => {
+      flattenedResponses.push({ keyword: part, originalResponse: r });
+    });
+  });
+  flattenedResponses.sort((a, b) => b.keyword.length - a.keyword.length);
+
+  for (const item of flattenedResponses) {
+    if (matchesSingleKeyword(msgText, item.keyword)) {
+      detectedKeyword = item.keyword;
+      match = item.originalResponse;
+      break;
+    }
+  }
+
+  // Jika tidak ada keyword yang cocok, langsung abaikan diam-diam.
+  if (!match) return;
+
+  // 2. KARENA KEYWORD COCOK, BARU KITA MINTA INFO KE TELEGRAM
   const sender: any = await message.getSender().catch(() => null);
   const chat: any = await message.getChat().catch(() => null);
   const peer: any = message?.peerId;
@@ -470,26 +495,15 @@ const handleIncomingMessage = async (
   const sourceClass = String(chat?.className || "");
   const fwdChannelPostIdEarly = Number((message as any)?.fwdFrom?.channelPost || 0);
   const isBroadcastChannel = Boolean((chat as any)?.broadcast);
-  // peer.channelId is set for both broadcast channels AND megagroups — reliable even when chat=null
   const isChannelPeer = Boolean(peer?.channelId);
 
   if (!isBroadcastChannel && !isChannelPeer) {
-    // Not from any channel peer — skip unless forwarded from a channel
-    if (sourceClass !== "Channel" && !fwdChannelPostIdEarly && !isFwd) {
-      broadcastLog(`[${accountId}] [SKIP] Bukan channel, class="${sourceClass}"`, "info");
-      return;
-    }
+    if (sourceClass !== "Channel" && !fwdChannelPostIdEarly && !isFwd) return;
   }
 
-  // Skip replies/comments in discussion megagroup (not forwarded channel posts)
-  if (!isBroadcastChannel && isChannelPeer && chat?.megagroup && hasThread && !fwdChannelPostIdEarly) {
-    broadcastLog(`[${accountId}] [SKIP] Komentar discussion group diabaikan`, "info");
-    return;
-  }
+  // Komentar diskusi grup kita biarkan (tidak di-skip) sesuai request kamu sebelumnya
+  // if (!isBroadcastChannel && isChannelPeer && chat?.megagroup && hasThread && !fwdChannelPostIdEarly) return;
 
-  // When a channel post is forwarded into a linked discussion group, Telegram sets
-  // replyMeta.replyToTopId to the CHANNEL message ID — which is NOT a valid message ID
-  // in the discussion group. In that case we must reply to the forwarded message itself.
   const isForwardedIntoDiscussion = isFwd && sourceClass !== "Channel";
   const threadTopId = isForwardedIntoDiscussion
     ? Number(message.id || 0)
@@ -497,80 +511,18 @@ const handleIncomingMessage = async (
        Number(replyMeta?.replyToMsgId || 0) ||
        Number(message.id || 0));
 
-  // ── Canonical dedup key ──────────────────────────────────────────────────────
-  // The same channel post can arrive via two paths with different IDs:
-  //   • Event handler  → channel message   (peerId.channelId = channelId, id = postId)
-  //   • Polling        → forwarded message  (peerId.channelId = groupId,   id = groupMsgId)
-  // We normalise to the ORIGINAL channel post ID (fwdFrom.channelPost) so both
-  // paths map to the same key and the second one is skipped.
   const fwdChannelPostId = Number((message as any)?.fwdFrom?.channelPost || 0);
   const fwdChannelId = String((message as any)?.fwdFrom?.fromId?.channelId || "");
   const canonicalPeerId = fwdChannelId || String(peer?.channelId || peer?.chatId || peer?.userId || "unknown");
   const canonicalMsgId = fwdChannelPostId || Number(message?.id || 0);
   const dedupeKey = `${accountId}:${canonicalPeerId}:${canonicalMsgId}`;
-  if (processedMessageKeys.has(dedupeKey)) {
-    broadcastLog(`[${accountId}] [DEDUP] Sudah diproses: ${dedupeKey}`, "info");
-    return;
-  }
+  if (processedMessageKeys.has(dedupeKey)) return;
   processedMessageKeys.add(dedupeKey);
   if (processedMessageKeys.size > 5000) processedMessageKeys.clear();
 
   const linkedCandidates = await getLinkedChatCandidates(accountId, tgClient, chat);
-  if (!matchesConfiguredTarget(accountId, message, sender, chat, linkedCandidates)) {
-    const possibleIds = [
-      ...toIdVariants(chat?.id),
-      ...toIdVariants(message?.chat?.id),
-      ...toIdVariants(peer?.channelId),
-      ...toIdVariants(peer?.chatId),
-      ...linkedCandidates,
-    ];
-    const compactIds = Array.from(new Set(possibleIds.map(normalizeTarget)))
-      .slice(0, 8)
-      .join(", ") || "(kosong)";
-    broadcastLog(
-      `[${accountId}] [SKIP] Target tidak cocok. Kandidat: ${compactIds}`,
-      "info"
-    );
-    return;
-  }
+  if (!matchesConfiguredTarget(accountId, message, sender, chat, linkedCandidates)) return;
 
-  const msgText = rawText.toLowerCase();
-  const normalizedMsgText = normalizeForKeyword(rawText);
-
-  let detectedKeyword = "";
-  let match = undefined;
-
-  // 1. Kumpulkan semua kombinasi keyword (jika ada koma) beserta response aslinya
-  const flattenedResponses: { keyword: string; originalResponse: any }[] = [];
-  settings.responses.forEach((r) => {
-    const parts = (r.keyword || "").split(",").map((p) => p.trim()).filter(Boolean);
-    parts.forEach((part) => {
-      flattenedResponses.push({ keyword: part, originalResponse: r });
-    });
-  });
-
-  // 2. Urutkan dari keyword terpanjang ke terpendek
-  flattenedResponses.sort((a, b) => b.keyword.length - a.keyword.length);
-
-  // 3. Cek match dengan yang paling spesifik (paling panjang) duluan
-  for (const item of flattenedResponses) {
-    if (matchesSingleKeyword(msgText, item.keyword)) {
-      detectedKeyword = item.keyword;
-      match = item.originalResponse;
-      break; // Berhenti di match pertama (yang terpanjang)
-    }
-  }
-
-  if (!match) {
-    broadcastLog(
-      `[${accountId}] [SKIP] Tidak ada keyword cocok: "${normalizedMsgText.slice(0, 120)}"`,
-      "info"
-    );
-    return;
-  }
-
-  // Use the same canonical IDs as dedupeKey so event-path and poll-path
-  // for the same channel post share one threadKey and only one reply is sent.
   const threadKey = `${accountId}:${canonicalPeerId}:${canonicalMsgId}:${detectedKeyword || "custom"}`;
   if (repliedThreadKeys.has(threadKey)) return;
 
@@ -587,8 +539,6 @@ const handleIncomingMessage = async (
   try {
     let effectiveChat = chat;
     if (isFwd) {
-      // In GramJS (MTProto), fwdFrom.fromId is a Peer object (e.g. PeerChannel).
-      // fwdFrom.chat / forward_from_chat are Bot API fields that don't exist here.
       const fwdFromId = (message as any)?.fwdFrom?.fromId;
       if (fwdFromId) {
         try {
@@ -602,15 +552,10 @@ const handleIncomingMessage = async (
     let replyMsgId = threadTopId;
 
     if (String(effectiveChat?.className || "") === "Channel") {
-      // Channel post: must use GetDiscussionMessage to get the valid message ID
-      // inside the linked discussion group. Channel post IDs ≠ discussion message IDs,
-      // so using the channel ID causes Telegram to ignore replyTo and post to the feed.
       const disc = await getDiscussionMsgId(tgClient, effectiveChat, threadTopId);
       if (disc) {
-        replyTarget = disc.discussionChat
-          || await resolveDiscussionReplyTarget(accountId, tgClient, effectiveChat);
+        replyTarget = disc.discussionChat || await resolveDiscussionReplyTarget(accountId, tgClient, effectiveChat);
         replyMsgId = disc.discussionMsgId;
-        broadcastLog(`[${accountId}] [DISC] Reply di discussion msg #${replyMsgId}`, "info");
       } else {
         replyTarget = await resolveDiscussionReplyTarget(accountId, tgClient, effectiveChat);
       }
@@ -618,13 +563,15 @@ const handleIncomingMessage = async (
       replyTarget = await resolveReplyTarget(message, chat);
     }
 
-    const minDelay = 3000;
-    const maxDelay = 8000;
-    const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
-    broadcastLog(`[${accountId}] Menunggu ${(randomDelay / 1000).toFixed(1)}s sebelum reply...`, "info");
-    await new Promise((r) => setTimeout(r, randomDelay));
+    const minDelay = 1000;
+    const maxDelay = 3000;
+    const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
+    broadcastLog(`[${accountId}] Reply dijadwalkan dalam ${(randomDelay / 1000).toFixed(1)}s...`, "info");
 
-    addToQueue(accountId, replyTarget, replyMsgId, finalResponse);
+    // 3. MENGGUNAKAN SETTIMEOUT AGAR TIDAK MEMBEKUKAN SERVER
+    setTimeout(() => {
+      addToQueue(accountId, replyTarget, replyMsgId, finalResponse);
+    }, randomDelay);
   } catch (err: any) {
     broadcastLog(`[${accountId}] Error final execution: ${err.message}`, "error");
   }
