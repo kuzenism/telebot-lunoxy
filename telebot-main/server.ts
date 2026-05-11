@@ -561,8 +561,8 @@ const handleIncomingMessage = async (
       replyTarget = await resolveReplyTarget(message, chat);
     }
 
-    const minDelay = 3000;
-    const maxDelay = 8000;
+    const minDelay = 1000;
+    const maxDelay = 5000;
     const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
     
     broadcastLog(`[${accountId}] Reply dijadwalkan dalam ${(randomDelay / 1000).toFixed(1)}s...`, "info");
