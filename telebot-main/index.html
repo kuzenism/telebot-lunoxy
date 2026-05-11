@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tele Bot Account</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      // Shim global as some libraries expect it
+      window.global = window;
+      // Prevent libraries from trying to overwrite fetch if it's read-only
+      if (typeof window.fetch === 'function') {
+        const originalFetch = window.fetch;
+        try {
+          Object.defineProperty(window, 'fetch', {
+            configurable: true,
+            enumerable: true,
+            get: () => originalFetch,
+            set: (v) => { 
+              console.warn('Attempt to overwrite window.fetch detected and ignored.');
+            }
+          });
+        } catch (e) {
+          // Already read-only or similar
+        }
+      }
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
