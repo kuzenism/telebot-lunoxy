@@ -12,7 +12,7 @@ import { createServer as createViteServer } from "vite";
 const ACCOUNTS_FILE = "./accounts.json";
 const SETTINGS_FILE = "./settings.json";
 const ACCOUNT_SETTINGS_FILE = "./account_settings.json";
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 interface AccountRecord {
   accountId: string;
