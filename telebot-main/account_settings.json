@@ -1,0 +1,63 @@
+{
+  "bianca": {
+    "isActive": true,
+    "autoDetect": false,
+    "targetGroups": [
+      "-1001525948158"
+    ],
+    "responses": [
+      {
+        "keyword": "art",
+        "response": "(é.) ꨄ @lunoxy dan (t.me/lunoxy/1018) available ready yukkk\n   (t.me/lunoxy/972) bisa rush langsung aja kirim\n    formless hit @.bidadarie"
+      },
+      {
+        "keyword": "chibi art",
+        "response": "HIT @LUNOXY YUK! buat art ready (t.me/lunoxy/979) dan chibi (lunoxy-chibiart.carrd.co) 🪽spell masterpiece! available for rush langsung aja ke @.bidadarie ✶"
+      },
+      {
+        "keyword": "Art class",
+        "response": "@artcIass from 0 to 100! cocok buat pemula yang mau belajar. 🪽 tersedia banyak brush pack & sesi tanya jawab all the time. t.me/artcIass/733 yuk join! ♪˚"
+      },
+      {
+        "keyword": "Bulol things",
+        "response": "bulol animated-purposes go to @lunoxyne. dengan result secantik ini yuk ke @.mDemonic: fast respon & proses. (t.me/xynearchive/2) ☁️🐩"
+      },
+      {
+        "keyword": "Mensive things",
+        "response": "yuk jajan, @lunoxyne caught up. \nboleh langsung (t.me/xynearchive/2)\ncustom di (t.me/xynearchive/2) ✶ available formless! kirim format ke @.mDemonic. 🎹✨"
+      }
+    ],
+    "antiSpamDelay": 5000
+  },
+  "acc3": {
+    "isActive": true,
+    "autoDetect": false,
+    "targetGroups": [
+      "-1001525948158",
+      "-1001611324665"
+    ],
+    "responses": [
+      {
+        "keyword": "Art",
+        "response": "(é.) ꨄ @lunoxy dan (t.me/lunoxy/1018) available ready yukkk\n   (t.me/lunoxy/972) bisa rush langsung aja kirim\n    formless hit @.bidadarie"
+      },
+      {
+        "keyword": "Chibi art",
+        "response": "HIT @LUNOXY YUK! buat art ready (t.me/lunoxy/979) dan chibi (lunoxy-chibiart.carrd.co) 🪽spell masterpiece! available for rush langsung aja ke @.bidadarie ✶"
+      },
+      {
+        "keyword": "Art class",
+        "response": "@artcIass from 0 to 100! cocok buat pemula yang mau belajar. 🪽 tersedia banyak brush pack & sesi tanya jawab all the time. t.me/artcIass/733 yuk join! ♪˚"
+      },
+      {
+        "keyword": "Bulol things",
+        "response": "bulol animated-purposes go to @lunoxyne. dengan result secantik ini yuk ke @.mDemonic: fast respon & proses. (t.me/xynearchive/2) ☁️🐩"
+      },
+      {
+        "keyword": "Mensive things",
+        "response": "yuk jajan, @lunoxyne caught up. \nboleh langsung (t.me/xynearchive/2)\ncustom di (t.me/xynearchive/2) ✶ available formless! kirim format ke @.mDemonic. 🎹✨"
+      }
+    ],
+    "antiSpamDelay": 5000
+  }
+}
