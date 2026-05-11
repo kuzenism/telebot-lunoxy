@@ -3,7 +3,7 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { TelegramClient, Api } from "telegram";
-import { StringSession } from "telegram/sessions";
+import { StringSession } from "telegram/sessions/index.js";
 import { NewMessage } from "telegram/events";
 import path from "path";
 import fs from "fs";
