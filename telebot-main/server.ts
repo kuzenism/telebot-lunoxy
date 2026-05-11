@@ -3,18 +3,19 @@ import express from "express";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { TelegramClient, Api } from "telegram";
-import { StringSession } from "telegram/sessions/index.js";
-import { NewMessage } from "telegram/events/index.js";
+import { StringSession } from "telegram/sessions";
+import { NewMessage } from "telegram/events";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 
+// Cari brankas di variabel DATA_DIR, kalau tidak ada, pakai folder biasa (".")
 const DATA_DIR = process.env.DATA_DIR || ".";
 
 const ACCOUNTS_FILE = `${DATA_DIR}/accounts.json`;
 const SETTINGS_FILE = `${DATA_DIR}/settings.json`;
 const ACCOUNT_SETTINGS_FILE = `${DATA_DIR}/account_settings.json`;
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 interface AccountRecord {
   accountId: string;
@@ -179,14 +180,6 @@ io.on("connection", (socket) => {
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
-const fetchWithTimeout = (promise: Promise<any>, ms = 15000) => {
-  let timer: NodeJS.Timeout;
-  const timeout = new Promise((_, reject) => {
-    timer = setTimeout(() => reject(new Error("API Timeout (Stuck)")), ms);
-  });
-  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
-};
-
 const normalizeTarget = (value: string) => value.trim().toLowerCase().replace(/^@/, "");
 
 const normalizeNumericId = (value: string) => {
@@ -333,10 +326,7 @@ const processQueue = async (accountId: string) => {
 
   if (task) {
     try {
-      await fetchWithTimeout(
-  client.sendMessage(task.targetId, { message: task.message, replyTo: task.replyTo }), 
-  15000
-);
+      await client.sendMessage(task.targetId, { message: task.message, replyTo: task.replyTo });
       broadcastLog(`[${accountId}] Pesan terkirim (replyTo: ${task.replyTo})`, "success");
       const delay = getAccountSettings(accountId).antiSpamDelay || 2000;
       await new Promise((r) => setTimeout(r, delay));
@@ -442,187 +432,180 @@ const resolveDiscussionReplyTarget = async (
 
 
 const handleIncomingMessage = async (
-  accountId: string,
-  tgClient: TelegramClient,
-  message: any,
-  source: "event" | "poll"
+  accountId: string,
+  tgClient: TelegramClient,
+  message: any,
+  source: "event" | "poll"
 ) => {
-  const settings = getAccountSettings(accountId);
-  if (!settings.isActive || !message) return;
+  const settings = getAccountSettings(accountId);
+  if (!settings.isActive || !message) return;
 
-  const rawText = String(message.message || "").trim();
-  if (!rawText) return;
+  const rawText = String(message.message || "").trim();
+  if (!rawText) return;
 
-  if (message.out) return;
+  if (message.out) return;
 
-  const sender: any = await message.getSender().catch(() => null);
-  const chat: any = await message.getChat().catch(() => null);
-  const peer: any = message?.peerId;
-  const hasGroupPeer = Boolean(peer?.channelId || peer?.chatId);
-  const isGroup = Boolean(
-    hasGroupPeer || (chat && (chat.className === "Chat" || chat.className === "Channel"))
-  );
-  if (!isGroup) return;
+  const sender: any = await message.getSender().catch(() => null);
+  const chat: any = await message.getChat().catch(() => null);
+  const peer: any = message?.peerId;
+  const hasGroupPeer = Boolean(peer?.channelId || peer?.chatId);
+  const isGroup = Boolean(
+    hasGroupPeer || (chat && (chat.className === "Chat" || chat.className === "Channel"))
+  );
+  if (!isGroup) return;
 
-  const replyMeta: any = (message as any)?.replyTo;
-  const isFwd = Boolean((message as any)?.fwdFrom || (message as any)?.forward);
-  const hasThread = Boolean(replyMeta?.replyToTopId || replyMeta?.replyToMsgId);
-  const sourceClass = String(chat?.className || "");
-  const fwdChannelPostIdEarly = Number((message as any)?.fwdFrom?.channelPost || 0);
-  const isBroadcastChannel = Boolean((chat as any)?.broadcast);
-  // peer.channelId is set for both broadcast channels AND megagroups — reliable even when chat=null
-  const isChannelPeer = Boolean(peer?.channelId);
+  const replyMeta: any = (message as any)?.replyTo;
+  const isFwd = Boolean((message as any)?.fwdFrom || (message as any)?.forward);
+  const hasThread = Boolean(replyMeta?.replyToTopId || replyMeta?.replyToMsgId);
+  const sourceClass = String(chat?.className || "");
+  const fwdChannelPostIdEarly = Number((message as any)?.fwdFrom?.channelPost || 0);
+  const isBroadcastChannel = Boolean((chat as any)?.broadcast);
+  const isChannelPeer = Boolean(peer?.channelId);
 
-  if (!isBroadcastChannel && !isChannelPeer) {
-    // Not from any channel peer — skip unless forwarded from a channel
-    if (sourceClass !== "Channel" && !fwdChannelPostIdEarly && !isFwd) {
-      broadcastLog(`[${accountId}] [SKIP] Bukan channel, class="${sourceClass}"`, "info");
-      return;
-    }
-  }
+  if (!isBroadcastChannel && !isChannelPeer) {
+    if (sourceClass !== "Channel" && !fwdChannelPostIdEarly && !isFwd) {
+      return; // Skip log dihapus
+    }
+  }
 
-  // Skip replies/comments in discussion megagroup (not forwarded channel posts)
-  if (!isBroadcastChannel && isChannelPeer && chat?.megagroup && hasThread && !fwdChannelPostIdEarly) {
-    broadcastLog(`[${accountId}] [SKIP] Komentar discussion group diabaikan`, "info");
-    return;
-  }
+  // 🛑 BLOKIR KOMENTAR USER (Hanya balas forward dari Channel)
+  if (!isBroadcastChannel && isChannelPeer && chat?.megagroup && hasThread && !fwdChannelPostIdEarly) {
+    return; // Skip log dihapus
+  }
 
-  // When a channel post is forwarded into a linked discussion group, Telegram sets
-  // replyMeta.replyToTopId to the CHANNEL message ID — which is NOT a valid message ID
-  // in the discussion group. In that case we must reply to the forwarded message itself.
-  const isForwardedIntoDiscussion = isFwd && sourceClass !== "Channel";
-  const threadTopId = isForwardedIntoDiscussion
-    ? Number(message.id || 0)
-    : (Number(replyMeta?.replyToTopId || 0) ||
-       Number(replyMeta?.replyToMsgId || 0) ||
-       Number(message.id || 0));
+  const isForwardedIntoDiscussion = isFwd && sourceClass !== "Channel";
+  const threadTopId = isForwardedIntoDiscussion
+    ? Number(message.id || 0)
+    : (Number(replyMeta?.replyToTopId || 0) ||
+       Number(replyMeta?.replyToMsgId || 0) ||
+       Number(message.id || 0));
 
-  // ── Canonical dedup key ──────────────────────────────────────────────────────
-  // The same channel post can arrive via two paths with different IDs:
-  //   • Event handler  → channel message   (peerId.channelId = channelId, id = postId)
-  //   • Polling        → forwarded message  (peerId.channelId = groupId,   id = groupMsgId)
-  // We normalise to the ORIGINAL channel post ID (fwdFrom.channelPost) so both
-  // paths map to the same key and the second one is skipped.
-  const fwdChannelPostId = Number((message as any)?.fwdFrom?.channelPost || 0);
-  const fwdChannelId = String((message as any)?.fwdFrom?.fromId?.channelId || "");
-  const canonicalPeerId = fwdChannelId || String(peer?.channelId || peer?.chatId || peer?.userId || "unknown");
-  const canonicalMsgId = fwdChannelPostId || Number(message?.id || 0);
-  const dedupeKey = `${accountId}:${canonicalPeerId}:${canonicalMsgId}`;
-  if (processedMessageKeys.has(dedupeKey)) {
-    broadcastLog(`[${accountId}] [DEDUP] Sudah diproses: ${dedupeKey}`, "info");
-    return;
-  }
-  processedMessageKeys.add(dedupeKey);
-  if (processedMessageKeys.size > 5000) processedMessageKeys.clear();
+  const fwdChannelPostId = Number((message as any)?.fwdFrom?.channelPost || 0);
+  const fwdChannelId = String((message as any)?.fwdFrom?.fromId?.channelId || "");
+  const canonicalPeerId = fwdChannelId || String(peer?.channelId || peer?.chatId || peer?.userId || "unknown");
+  const canonicalMsgId = fwdChannelPostId || Number(message?.id || 0);
+  const dedupeKey = `${accountId}:${canonicalPeerId}:${canonicalMsgId}`;
+  
+  if (processedMessageKeys.has(dedupeKey)) {
+    return; // Skip log dihapus
+  }
+  processedMessageKeys.add(dedupeKey);
+  if (processedMessageKeys.size > 5000) processedMessageKeys.clear();
 
-  const linkedCandidates = await getLinkedChatCandidates(accountId, tgClient, chat);
-  if (!matchesConfiguredTarget(accountId, message, sender, chat, linkedCandidates)) {
-    const possibleIds = [
-      ...toIdVariants(chat?.id),
-      ...toIdVariants(message?.chat?.id),
-      ...toIdVariants(peer?.channelId),
-      ...toIdVariants(peer?.chatId),
-      ...linkedCandidates,
-    ];
-    const compactIds = Array.from(new Set(possibleIds.map(normalizeTarget)))
-      .slice(0, 8)
-      .join(", ") || "(kosong)";
-    broadcastLog(
-      `[${accountId}] [SKIP] Target tidak cocok. Kandidat: ${compactIds}`,
-      "info"
-    );
-    return;
-  }
+  const linkedCandidates = await getLinkedChatCandidates(accountId, tgClient, chat);
+  if (!matchesConfiguredTarget(accountId, message, sender, chat, linkedCandidates)) {
+    return; // Skip log dihapus
+  }
 
-  const msgText = rawText.toLowerCase();
-  const normalizedMsgText = normalizeForKeyword(rawText);
+  const msgText = rawText.toLowerCase();
 
-  let detectedKeyword = "";
-  const match = settings.responses.find((r) => {
-    const hit = containsKeyword(msgText, r.keyword);
-    if (hit) { detectedKeyword = String(hit); return true; }
-    return false;
-  });
+  let detectedKeyword = "";
+  let match = undefined;
 
-  if (!match) {
-    broadcastLog(
-      `[${accountId}] [SKIP] Tidak ada keyword cocok: "${normalizedMsgText.slice(0, 120)}"`,
-      "info"
-    );
-    return;
-  }
+  // Memecah dan mengurutkan keyword
+  const flattenedResponses: { keyword: string; originalResponse: any }[] = [];
+  settings.responses.forEach((r) => {
+    const parts = (r.keyword || "").split(",").map((p) => p.trim()).filter(Boolean);
+    parts.forEach((part) => {
+      flattenedResponses.push({ keyword: part, originalResponse: r });
+    });
+  });
 
-  // Use the same canonical IDs as dedupeKey so event-path and poll-path
-  // for the same channel post share one threadKey and only one reply is sent.
-  const threadKey = `${accountId}:${canonicalPeerId}:${canonicalMsgId}:${detectedKeyword || "custom"}`;
-  if (repliedThreadKeys.has(threadKey)) return;
+  flattenedResponses.sort((a, b) => b.keyword.length - a.keyword.length);
 
-  repliedThreadKeys.add(threadKey);
-  if (repliedThreadKeys.size > 10000) repliedThreadKeys.clear();
+  for (const item of flattenedResponses) {
+    if (matchesSingleKeyword(msgText, item.keyword)) {
+      detectedKeyword = item.keyword;
+      match = item.originalResponse;
+      break; 
+    }
+  }
 
-  broadcastLog(
-    `[${accountId}] [TRIGGER][${source}] keyword="${detectedKeyword}" | teks="${rawText.slice(0, 100)}"`,
-    "bot"
-  );
+  if (!match) {
+    return; // Skip log dihapus
+  }
 
-  const finalResponse = match.response;
+  const threadKey = `${accountId}:${canonicalPeerId}:${canonicalMsgId}:${detectedKeyword || "custom"}`;
+  if (repliedThreadKeys.has(threadKey)) return;
 
-  try {
-    let effectiveChat = chat;
-    if (isFwd) {
-      // In GramJS (MTProto), fwdFrom.fromId is a Peer object (e.g. PeerChannel).
-      // fwdFrom.chat / forward_from_chat are Bot API fields that don't exist here.
-      const fwdFromId = (message as any)?.fwdFrom?.fromId;
-      if (fwdFromId) {
-        try {
-          const resolved = await tgClient.getEntity(fwdFromId);
-          if (resolved) effectiveChat = resolved;
-        } catch {}
-      }
-    }
+  repliedThreadKeys.add(threadKey);
+  if (repliedThreadKeys.size > 10000) repliedThreadKeys.clear();
 
-    let replyTarget: any;
-    let replyMsgId = threadTopId;
+  broadcastLog(
+    `[${accountId}] [TRIGGER][${source}] keyword="${detectedKeyword}" | teks="${rawText.slice(0, 100)}"`,
+    "bot"
+  );
 
-    if (String(effectiveChat?.className || "") === "Channel") {
-      // Channel post: must use GetDiscussionMessage to get the valid message ID
-      // inside the linked discussion group. Channel post IDs ≠ discussion message IDs,
-      // so using the channel ID causes Telegram to ignore replyTo and post to the feed.
-      const disc = await getDiscussionMsgId(tgClient, effectiveChat, threadTopId);
-      if (disc) {
-        replyTarget = disc.discussionChat
-          || await resolveDiscussionReplyTarget(accountId, tgClient, effectiveChat);
-        replyMsgId = disc.discussionMsgId;
-        broadcastLog(`[${accountId}] [DISC] Reply di discussion msg #${replyMsgId}`, "info");
-      } else {
-        replyTarget = await resolveDiscussionReplyTarget(accountId, tgClient, effectiveChat);
-      }
-    } else {
-      replyTarget = await resolveReplyTarget(message, chat);
-    }
+  const finalResponse = match.response;
 
-    const minDelay = 3000;
-    const maxDelay = 8000;
-    const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
-    broadcastLog(`[${accountId}] Menunggu ${(randomDelay / 1000).toFixed(1)}s sebelum reply...`, "info");
-    await new Promise((r) => setTimeout(r, randomDelay));
+  try {
+    let effectiveChat = chat;
+    if (isFwd) {
+      const fwdFromId = (message as any)?.fwdFrom?.fromId;
+      if (fwdFromId) {
+        try {
+          const resolved = await tgClient.getEntity(fwdFromId);
+          if (resolved) effectiveChat = resolved;
+        } catch {}
+      }
+    }
 
-    addToQueue(accountId, replyTarget, replyMsgId, finalResponse);
-  } catch (err: any) {
-    broadcastLog(`[${accountId}] Error final execution: ${err.message}`, "error");
-  }
+    let replyTarget: any;
+    let replyMsgId = threadTopId;
+
+    if (String(effectiveChat?.className || "") === "Channel") {
+      const disc = await getDiscussionMsgId(tgClient, effectiveChat, threadTopId);
+      if (disc) {
+        replyTarget = disc.discussionChat || await resolveDiscussionReplyTarget(accountId, tgClient, effectiveChat);
+        replyMsgId = disc.discussionMsgId;
+      } else {
+        replyTarget = await resolveDiscussionReplyTarget(accountId, tgClient, effectiveChat);
+      }
+    } else {
+      replyTarget = await resolveReplyTarget(message, chat);
+    }
+
+    // Waktu jeda aku balikin ke versi lama (3 sampai 8 detik)
+    const minDelay = 3000;
+    const maxDelay = 8000;
+    const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
+    
+    broadcastLog(`[${accountId}] Reply dijadwalkan dalam ${(randomDelay / 1000).toFixed(1)}s...`, "info");
+
+    // Tetap menggunakan setTimeout agar server tidak macet/ngelag
+    setTimeout(() => {
+      addToQueue(accountId, replyTarget, replyMsgId, finalResponse);
+    }, randomDelay);
+    
+  } catch (err: any) {
+    broadcastLog(`[${accountId}] Error final execution: ${err.message}`, "error");
+  }
 };
-
 // ─── Polling Fallback (uses per-account settings) ────────────────────────────
 
 const startPollingFallback = (accountId: string, tgClient: TelegramClient) => {
-  if (pollingTimerByAccount.has(accountId)) return;
+  if (pollingTimerByAccount.has(accountId)) return;
 
-  const timer = setInterval(async () => {
-    const client = liveClients.get(accountId);
-    const settings = getAccountSettings(accountId);
-    if (pollingAccounts.has(accountId) || !client?.connected || !settings.isActive) return;
-    pollingAccounts.add(accountId);
+  const timer = setInterval(async () => {
+    const client = liveClients.get(accountId);
+    const settings = getAccountSettings(accountId);
+
+    // --- TAMBAHAN: Watchdog Auto-Reconnect ---
+    if (client && !client.connected && settings.isActive) {
+      broadcastLog(`[${accountId}] Bot terputus/offline. Mencoba reconnect...`, "error");
+      try {
+        await client.connect();
+        broadcastLog(`[${accountId}] Reconnect otomatis berhasil!`, "success");
+      } catch (e) {
+        return; // Coba lagi di interval berikutnya
+      }
+    }
+    // -----------------------------------------
+
+    if (pollingAccounts.has(accountId) || !client?.connected || !settings.isActive) return;
+    pollingAccounts.add(accountId);
+
+    // ... sisa kode polling ke bawah tidak berubah ...
 
     try {
       const targets = settings.targetGroups.map((t) => String(t || "").trim()).filter(Boolean);
@@ -645,10 +628,7 @@ const startPollingFallback = (accountId: string, tgClient: TelegramClient) => {
           }
 
           for (const pollEntity of pollEntities) {
-            const list: any[] = (await fetchWithTimeout(
-              tgClient.getMessages(pollEntity, { limit: 20 }), 
-              15000
-            )) as any[];
+            const list: any[] = (await tgClient.getMessages(pollEntity, { limit: 20 })) as any[];
             const sorted = [...(list || [])].sort(
               (a: any, b: any) => Number(a?.id || 0) - Number(b?.id || 0)
             );
@@ -689,10 +669,13 @@ const startPollingFallback = (accountId: string, tgClient: TelegramClient) => {
 };
 
 const setupBotCore = (accountId: string, tgClient: TelegramClient) => {
-  startPollingFallback(accountId, tgClient);
-  tgClient.addEventHandler(async (event) => {
-    await handleIncomingMessage(accountId, tgClient, event.message, "event");
-  }, new NewMessage({}));
+  // 1. Jalankan sistem polling yang sudah kita pasangi watchdog reconnect
+  startPollingFallback(accountId, tgClient);
+
+  // 2. Tangkap pesan baru yang masuk (Event Handler)
+  tgClient.addEventHandler(async (event) => {
+    await handleIncomingMessage(accountId, tgClient, event.message, "event");
+  }, new NewMessage({}));
 };
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
