@@ -608,12 +608,14 @@ const handleIncomingMessage = async (
     }
 
     const minDelay = 3000;
-    const maxDelay = 8000;
-    const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
-    broadcastLog(`[${accountId}] Menunggu ${(randomDelay / 1000).toFixed(1)}s sebelum reply...`, "info");
-    await new Promise((r) => setTimeout(r, randomDelay));
+    const maxDelay = 8000;
+    const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
+    broadcastLog(`[${accountId}] Reply dijadwalkan dalam ${(randomDelay / 1000).toFixed(1)}s...`, "info");
 
-    addToQueue(accountId, replyTarget, replyMsgId, finalResponse);
+    // Gunakan setTimeout (tanpa await) agar bot tidak stuck dan bisa lanjut mengecek grup lain!
+    setTimeout(() => {
+      addToQueue(accountId, replyTarget, replyMsgId, finalResponse);
+    }, randomDelay);
   } catch (err: any) {
     broadcastLog(`[${accountId}] Error final execution: ${err.message}`, "error");
   }
