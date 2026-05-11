@@ -179,6 +179,14 @@ io.on("connection", (socket) => {
 
 // ─── Utilities ────────────────────────────────────────────────────────────────
 
+const fetchWithTimeout = (promise: Promise<any>, ms = 15000) => {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error("API Timeout (Stuck)")), ms);
+  });
+  return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+};
+
 const normalizeTarget = (value: string) => value.trim().toLowerCase().replace(/^@/, "");
 
 const normalizeNumericId = (value: string) => {
@@ -325,7 +333,10 @@ const processQueue = async (accountId: string) => {
 
   if (task) {
     try {
-      await client.sendMessage(task.targetId, { message: task.message, replyTo: task.replyTo });
+      await fetchWithTimeout(
+  client.sendMessage(task.targetId, { message: task.message, replyTo: task.replyTo }), 
+  15000
+);
       broadcastLog(`[${accountId}] Pesan terkirim (replyTo: ${task.replyTo})`, "success");
       const delay = getAccountSettings(accountId).antiSpamDelay || 2000;
       await new Promise((r) => setTimeout(r, delay));
@@ -653,7 +664,10 @@ const startPollingFallback = (accountId: string, tgClient: TelegramClient) => {
           }
 
           for (const pollEntity of pollEntities) {
-            const list: any[] = (await tgClient.getMessages(pollEntity, { limit: 20 })) as any[];
+            const list: any[] = (await fetchWithTimeout(
+              tgClient.getMessages(pollEntity, { limit: 20 }), 
+              15000
+            )) as any[];
             const sorted = [...(list || [])].sort(
               (a: any, b: any) => Number(a?.id || 0) - Number(b?.id || 0)
             );
