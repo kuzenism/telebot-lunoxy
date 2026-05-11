@@ -193,19 +193,18 @@ export default function App() {
   const isAllActive = accounts.length > 0 && accounts.every((acc) => acc.isActive);
 
   const handleToggleAll = async () => {
-    setIsToggling(true); // Nyalakan animasi loading
+    setIsToggling(true);
     try {
       if (isAllActive) {
         await fetch("/api/accounts/stop-all", { method: "POST" });
       } else {
         await fetch("/api/accounts/start-all", { method: "POST" });
       }
-      await loadConfig(); // Refresh tampilan
+      await loadConfig();
     } finally {
-      setIsToggling(false); // Matikan animasi loading
+      setIsToggling(false);
     }
   };
-  // ----------------------------------------
 
   const connectedCount = accounts.filter((a) => a.connected).length;
 
@@ -345,6 +344,7 @@ export default function App() {
                       <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
                         Akun Anda
                       </h2>
+                      {/* Tombol Toggle All Animasi */}
                       {accounts.length > 0 && (
                         <button
                           onClick={handleToggleAll}
@@ -359,7 +359,7 @@ export default function App() {
                               : "hover:scale-105 active:scale-95"
                           }`}
                         >
-                          {/* Teks Tombol (Hilang saat loading) */}
+                          {/* Teks Tombol */}
                           <span
                             className={`flex items-center gap-1.5 transition-transform duration-300 ${
                               isToggling ? "scale-0 opacity-0" : "scale-100 opacity-100"
@@ -368,7 +368,7 @@ export default function App() {
                             {isAllActive ? "■ Stop All" : "▶ Start All"}
                           </span>
 
-                          {/* Animasi Loading Spinner (Muncul saat diklik) */}
+                          {/* Animasi Loading */}
                           {isToggling && (
                             <span className="absolute inset-0 flex items-center justify-center">
                               <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
@@ -379,6 +379,19 @@ export default function App() {
                           )}
                         </button>
                       )}
+                    </div>
+                    
+                    {/* Daftar Kotak Akun (Ini yang tadi terhapus) */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {accounts.map((acc) => (
+                        <AccountCard
+                          key={acc.accountId}
+                          account={acc}
+                          onClick={() => navigate(`/account/${encodeURIComponent(acc.accountId)}`)}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ) : (
                   <EmptyState onAdd={() => { resetForm(); setShowAddForm(true); }} />
                 )}
