@@ -9,9 +9,11 @@ import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
 
-const ACCOUNTS_FILE = "./accounts.json";
-const SETTINGS_FILE = "./settings.json";
-const ACCOUNT_SETTINGS_FILE = "./account_settings.json";
+const DATA_DIR = process.env.DATA_DIR || ".";
+
+const ACCOUNTS_FILE = `${DATA_DIR}/accounts.json`;
+const SETTINGS_FILE = `${DATA_DIR}/settings.json`;
+const ACCOUNT_SETTINGS_FILE = `${DATA_DIR}/account_settings.json`;
 const PORT = process.env.PORT || 3000;
 
 interface AccountRecord {
