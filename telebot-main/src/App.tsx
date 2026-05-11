@@ -188,6 +188,18 @@ export default function App() {
     await loadConfig();
   };
 
+  // --- TAMBAHKAN DUA FUNGSI INI DI SINI ---
+  const handleStartAll = async () => {
+    await fetch("/api/accounts/start-all", { method: "POST" });
+    loadConfig();
+  };
+
+  const handleStopAll = async () => {
+    await fetch("/api/accounts/stop-all", { method: "POST" });
+    loadConfig();
+  };
+  // ----------------------------------------
+
   const connectedCount = accounts.filter((a) => a.connected).length;
 
   const logout = () => {
@@ -195,7 +207,7 @@ export default function App() {
     localStorage.removeItem("tele-auth");
     setIsAuthed(false);
   };
-
+  
   if (!isAuthed) {
     return <LoginPage onLogin={() => setIsAuthed(true)} />;
   }
