@@ -675,6 +675,22 @@ const setupBotCore = (accountId: string, tgClient: TelegramClient) => {
 
 // ─── API Routes ───────────────────────────────────────────────────────────────
 
+app.post("/api/accounts/start-all", (req, res) => {
+  accounts.forEach(acc => {
+    setAccountSettings(acc.accountId, { isActive: true });
+  });
+  broadcastLog("Semua akun telah AKTIF (Start All).", "success");
+  res.json({ success: true });
+});
+
+app.post("/api/accounts/stop-all", (req, res) => {
+  accounts.forEach(acc => {
+    setAccountSettings(acc.accountId, { isActive: false });
+  });
+  broadcastLog("Semua akun telah DIMATIKAN (Stop All).", "error");
+  res.json({ success: true });
+});
+
 app.get("/api/config", (_req, res) => {
   const accountStatuses = accounts.map((a) => ({
     accountId: a.accountId,
