@@ -496,11 +496,11 @@ const handleIncomingMessage = async (
     }
   }
 
-  // 🛑 BLOKIR KOMENTAR USER (Hanya balas forward dari Channel)
-  if (!isBroadcastChannel && isChannelPeer && chat?.megagroup && hasThread && !fwdChannelPostIdEarly) {
-    return; 
+// 🛑 BLOKIR KETIKAN MANUSIA BIASA
+  // Jika yang mengirim pesan adalah "User" (manusia biasa) dan BUKAN "Bot" pengurus Base, langsung abaikan!
+  if (sender && sender.className === "User" && !sender.bot) {
+    return;
   }
-
   const isForwardedIntoDiscussion = isFwd && sourceClass !== "Channel";
   const threadTopId = isForwardedIntoDiscussion
     ? Number(message.id || 0)
