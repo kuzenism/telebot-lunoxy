@@ -4,7 +4,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { TelegramClient, Api } from "telegram";
 import { StringSession } from "telegram/sessions/index.js";
-import { NewMessage } from "telegram/events";
+import { NewMessage } from "telegram/events/index.js";
 import path from "path";
 import fs from "fs";
 import { createServer as createViteServer } from "vite";
