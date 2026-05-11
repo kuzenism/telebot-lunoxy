@@ -501,8 +501,10 @@ const handleIncomingMessage = async (
     if (sourceClass !== "Channel" && !fwdChannelPostIdEarly && !isFwd) return;
   }
 
-  // Komentar diskusi grup kita biarkan (tidak di-skip) sesuai request kamu sebelumnya
-  // if (!isBroadcastChannel && isChannelPeer && chat?.megagroup && hasThread && !fwdChannelPostIdEarly) return;
+  // 🛑 BLOKIR KOMENTAR USER: Abaikan obrolan biasa, HANYA balas forward dari Channel
+  if (!isBroadcastChannel && isChannelPeer && chat?.megagroup && hasThread && !fwdChannelPostIdEarly) {
+    return;
+  }
 
   const isForwardedIntoDiscussion = isFwd && sourceClass !== "Channel";
   const threadTopId = isForwardedIntoDiscussion
