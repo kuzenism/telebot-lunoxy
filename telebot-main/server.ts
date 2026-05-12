@@ -461,8 +461,6 @@ const handleIncomingMessage = async (
   }
 
   let detectedKeyword = "";
-
-  let detectedKeyword = "";
   let match = undefined;
 
   // Memecah dan mengurutkan keyword (Super Cepat)
