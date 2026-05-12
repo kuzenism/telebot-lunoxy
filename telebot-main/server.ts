@@ -522,7 +522,7 @@ const handleIncomingMessage = async (
   if (!matchesConfiguredTarget(accountId, message, sender, chat, linkedCandidates)) return; 
 
   const threadKey = `${accountId}:${canonicalPeerId}:${canonicalMsgId}:${detectedKeyword || "custom"}`;
-  //if (repliedThreadKeys.has(threadKey)) return;
+  if (repliedThreadKeys.has(threadKey)) return;
 
   repliedThreadKeys.add(threadKey);
   if (repliedThreadKeys.size > 10000) repliedThreadKeys.clear();
