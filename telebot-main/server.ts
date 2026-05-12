@@ -46,7 +46,7 @@ const defaultSettings: BotSettings = {
   autoDetect: false,
   targetGroups: [],
   responses: [],
-  antiSpamDelay: 5000,
+  antiSpamDelay: 2000,
 };
 
 const sanitizeSettings = (input: Partial<BotSettings> | null | undefined): BotSettings => {
@@ -561,8 +561,8 @@ const handleIncomingMessage = async (
       replyTarget = await resolveReplyTarget(message, chat);
     }
 
-    const minDelay = 1000;
-    const maxDelay = 3000;
+    const minDelay = 500;
+    const maxDelay = 1500;
     const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
     
     broadcastLog(`[${accountId}] Reply dijadwalkan dalam ${(randomDelay / 1000).toFixed(1)}s...`, "info");
