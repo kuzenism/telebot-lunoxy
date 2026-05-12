@@ -39,6 +39,7 @@ interface BotSettings {
   targetGroups: string[];
   responses: { keyword: string; response: string }[];
   antiSpamDelay: number;
+  requireEmojiPrefix: boolean; // <-- Fitur baru
 }
 
 const defaultSettings: BotSettings = {
@@ -47,6 +48,7 @@ const defaultSettings: BotSettings = {
   targetGroups: [],
   responses: [],
   antiSpamDelay: 2000,
+  requireEmojiPrefix: false, // <-- Default mati
 };
 
 const sanitizeSettings = (input: Partial<BotSettings> | null | undefined): BotSettings => {
@@ -65,6 +67,7 @@ const sanitizeSettings = (input: Partial<BotSettings> | null | undefined): BotSe
     antiSpamDelay: Number.isFinite(Number(merged.antiSpamDelay))
       ? Number(merged.antiSpamDelay)
       : defaultSettings.antiSpamDelay,
+    requireEmojiPrefix: Boolean(merged.requireEmojiPrefix), // <-- Tambahan
   };
 };
 
@@ -447,6 +450,17 @@ const handleIncomingMessage = async (
   if (!rawText || message.out) return;
 
   const msgText = rawText.toLowerCase();
+
+  // 🛑 FITUR BARU: Hanya balas jika karakter pertama adalah Emoji (Roket, Tas, dll)
+  if (settings.requireEmojiPrefix) {
+    // Regex ini mendeteksi apakah karakter paling depan adalah emoji
+    const startsWithEmoji = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(rawText.trim());
+    if (!startsWithEmoji) {
+      return; // Abaikan diam-diam kalau pesan PP (tidak diawali emoji)
+    }
+  }
+
+  let detectedKeyword = "";
 
   let detectedKeyword = "";
   let match = undefined;
