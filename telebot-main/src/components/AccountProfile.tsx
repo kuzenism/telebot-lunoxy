@@ -26,6 +26,7 @@ interface BotSettings {
   targetGroups: string[];
   responses: { keyword: string; response: string }[];
   antiSpamDelay: number;
+  requireEmojiPrefix: boolean; // <-- Fitur Wajib Emoji ditambahkan di sini
 }
 
 interface ResolvedTarget {
@@ -56,6 +57,7 @@ const defaultSettings: BotSettings = {
   targetGroups: [],
   responses: [],
   antiSpamDelay: 2000,
+  requireEmojiPrefix: false, // <-- Default mati
 };
 
 export default function AccountProfile({
@@ -514,7 +516,10 @@ export default function AccountProfile({
                 className="w-24 h-9 text-center text-sm font-semibold border border-line rounded-xl disabled:opacity-60 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-card text-primary"
               />
             </div>
+            
             <div className="h-px bg-line" />
+            
+            {/* Toggle Global Auto-Detect */}
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <div className="relative">
                 <input
@@ -532,6 +537,28 @@ export default function AccountProfile({
                 <p className="text-xs text-secondary">Balas semua pesan masuk dari target</p>
               </div>
             </label>
+
+            <div className="h-px bg-line" />
+            
+            {/* Toggle Wajib Emoji (Filter Paid Promote) */}
+            <label className="flex items-center gap-3 cursor-pointer select-none">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={settings.requireEmojiPrefix || false}
+                  onChange={(e) => saveSetting({ ...settings, requireEmojiPrefix: e.target.checked })}
+                  disabled={isSaving}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-200 rounded-full peer-checked:bg-indigo-500 transition-colors peer-disabled:opacity-60" />
+                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-primary">Filter Paid Promote (Wajib Emoji)</p>
+                <p className="text-xs text-secondary">Abaikan pesan yang depannya huruf/bukan emoji</p>
+              </div>
+            </label>
+
           </div>
         </div>
       </div>
