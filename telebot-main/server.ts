@@ -562,7 +562,7 @@ const handleIncomingMessage = async (
     }
 
     const minDelay = 1000;
-    const maxDelay = 1500;
+    const maxDelay = 3000;
     const randomDelay = minDelay + Math.floor(Math.random() * (maxDelay - minDelay));
     
     broadcastLog(`[${accountId}] Reply dijadwalkan dalam ${(randomDelay / 1000).toFixed(1)}s...`, "info");
