@@ -482,16 +482,27 @@ export default function AccountProfile({
                 </label>
               </div>
               <p className="text-[11px] text-slate-500 mb-2.5 leading-relaxed">
-                Abaikan pesan jika mengandung kata-kata di bawah ini (pisahkan dengan koma). Otomatis tersimpan saat kamu klik di luar kotak.
+                Abaikan pesan jika mengandung kata-kata di bawah ini (pisahkan dengan koma).
               </p>
-              <input
-                value={filterInput}
-                onChange={(e) => setFilterInput(e.target.value)}
-                onBlur={saveFilterWords}
-                disabled={isSaving}
-                placeholder="contoh: scam, nipu, orang miskin"
-                className="w-full h-9 border border-rose-200 rounded-xl px-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition placeholder:text-slate-300 bg-white text-primary"
-              />
+              <div className="flex gap-2">
+                <input
+                  value={filterInput}
+                  onChange={(e) => setFilterInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") saveFilterWords();
+                  }}
+                  disabled={isSaving}
+                  placeholder="contoh: ubot, scam, nipu"
+                  className="flex-1 h-9 border border-rose-200/30 rounded-xl px-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100/20 transition placeholder:text-slate-500 bg-card text-primary"
+                />
+                <button
+                  onClick={saveFilterWords}
+                  disabled={isSaving}
+                  className="px-4 h-9 bg-rose-500 text-white text-xs font-semibold rounded-xl hover:bg-rose-600 disabled:opacity-50 transition shrink-0 flex items-center justify-center shadow-sm shadow-rose-200/10"
+                >
+                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : "Simpan"}
+                </button>
+              </div>
             </div>
 
             <div className="p-5 space-y-3">
