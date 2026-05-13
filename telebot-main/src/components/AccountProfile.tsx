@@ -524,129 +524,82 @@ export default function AccountProfile({
             </div>
           </div>
 
-          {/* ── Filter Words (UI BARU FRESH ✨) ── */}
+          {/* ── Filter Words ── */}
           <div className="bg-card rounded-2xl border border-line overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-line flex items-center gap-2 bg-rose-500/5">
               <ShieldAlert size={15} className="text-rose-500" />
               <h3 className="text-sm font-bold text-rose-600">Filter Words</h3>
-              <span className="ml-auto text-xs text-rose-500 bg-rose-500/10 pxAh, kamu benar banget! Itu dia cacatnya. Waktu diklik "Simpan", sistemnya memang nyimpen ke *-2 py-0.5 rounded-full font-semibold">
+              <span className="ml-auto text-xs text-rose-500 bg-rose-500/10 px-2 py-0.5 rounded-full font-semibold">
                 {(settings.filterWords || []).length} Kata Terlarang
               </span>
             </div>
             
             <div className="p-5 flex-1">
-              <p className="text-xs text-slate-500 mb-3database* bot, tapi **nggak ada wujud visualnya** di layar. Jadi kesannya kayak masuk ke ruang hampa dan kita nggak tahu kata apa aja yang udah berhasil leading-relaxed">
+              <p className="text-xs text-slate-500 mb-3 leading-relaxed">
                 Bot otomatis diam (tidak membalas) jika mendeteksi kata-kata di bawah ini, meskipun keyword utamanya ada.
               </p>
 
               <div className="flex gap-2 mb-4">
                 <input
                   value={filterInput}
-                  onChange={(e) keblokir.
-
-Desain UX yang bagus itu harusnya kayak nambahin "Tags" atau "Chips" (mirip kalau nambahin label). => setFilterInput(e.target.value)}
+                  onChange={(e) => setFilterInput(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") addFilterWord(); }}
                   disabled={isSaving}
                   placeholder="Ketik kata... (contoh: scam, nipu)"
-                  className="flex-1 h-9 border border-rose-200/50 rounded-xl px-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring Jadi begitu di-*Enter*, katanya langsung muncul berjejer rapi di bawahnya, dan bisa dihapus satu-satu pakai tombol silang (X).
-
-A-rose-100/30 transition placeholder:text-slate-400 bg-card text-primary"
+                  className="flex-1 h-9 border border-rose-200/50 rounded-xl px-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100/30 transition placeholder:text-slate-400 bg-card text-primary"
                 />
-                <yo kita rombak total UI-nya biar jauh lebih *fresh* dan interaktif!
-
-### Perubahan UI yang akan terjadi:
-1. Kotak input akanbutton
+                <button
                   onClick={addFilterWord}
                   disabled={isSaving || !filterInput.trim()}
-                  className="w-9 h-9 flex items-center justify-center bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 hover:text-rose- selalu kosong menunggu ketikan baru.
-2. Tombol "Simpan" berubah jadi logo `+` (Tambah).
-3. Setelah ditambah, kata-kat700 disabled:opacity-40 transition shrink-0"
+                  className="w-9 h-9 flex items-center justify-center bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 hover:text-rose-700 disabled:opacity-40 transition shrink-0"
                 >
-                  {isSaving ? <Loader2 size={14} className="animate-spinanya akan muncul sebagai **Chips/Tag berwarna merah elegan** di bawah kotak input.
-4. Ada tombol silang `X` di masing-masing kata" /> : <Plus size={14} />}
+                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
                 </button>
               </div>
 
-              {/* Tempat List Badges/Pills */}
-              <div className untuk menghapusnya secara spesifik.
+              {/* Filter Word Chips */}
+              <div className="flex flex-wrap gap-2">
+                {(settings.filterWords || []).map((word) => (
+                  <span
+                    key={word}
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-rose-50 border border-rose-200 rounded-full text-xs font-medium text-rose-700"
+                  >
+                    {word}
+                    <button
+                      onClick={() => removeFilterWord(word)}
+                      disabled={isSaving}
+                      className="text-rose-400 hover:text-rose-600 transition disabled:opacity-50"
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                ))}
+                {(settings.filterWords || []).length === 0 && (
+                  <p className="text-xs text-secondary text-center py-5 w-full">Belum ada kata terlarang</p>
+                )}
+              </div>
+            </div>
+          </div>
 
-Silakan **Ctrl + A lalu Delete** semua isi file `src/components/AccountProfile.tsx` kamu, lalu temp="flex flex-wrap gap-2">
-                {(settings.filterWords || []).map((word, i) => (
-                  <div key={i} classNameel kode *full* yang udah diperbarui ini:
-```tsx
-import { useState, useEffect } from "react";
-import {
-  ArrowLeft,
-  Trash2,
-  Plus,
-  Search,
-  CheckCircle2,
-  AlertCircle,
-  Loader2,
-  Power,
-  Settings,
-  MessageSquare,
-  Target,
-  Hash,
-  Pencil,
-  Check,
-  X,
-  Phone,
-  AtSign,
-  User,
-  ShieldAlert,
-} from "lucide-react";
+          {/* ── Bot Settings ── */}
+          <div className="bg-card rounded-2xl border border-line overflow-hidden flex flex-col lg:col-span-2">
+            <div className="px-5 py-4 border-b border-line flex items-center gap-2">
+              <Settings size={15} className="text-indigo-500" />
+              <h3 className="text-sm font-bold text-primary">Bot Settings</h3>
+            </div>
 
-interface BotSettings {
-  isActive: boolean;
-  autoDetect: boolean
-  type: string;
-  username: string | null;
-  membersCount: number | null;
-}
-
-interface AccountInfo {
-  firstName: string | null;
-  lastName: string | null;
-  username: string | null;
-  phone: string | null;
-}
-
-interface AccountStatus {
-  accountId: string;
-  connected: boolean;
-  hasSession: boolean;
-}
-
-const defaultSettings: BotSettings = {
-  isActive: false,
-  auto
-  filterWords: [],
-};
-
-export default function AccountProfile({
-  account,
-  onBack,
-  onDelete,
-  onRename,
-  onRefresh,
-}: {
-  account: AccountStatus | undefined;
-  onBack: () => void;
-  onDelete: (id: string) => void;
-  onRename: (newId: string) => void;
-  onRefresh?: () => void;
-}) {
-  const [settings, setSettings] = useState<BotSettings>(defaultSettings);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveError, setSaveError] = useState("");
-
-  // Account info
-  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
-
-  // Rename state
-  sm font-semibold border border-line rounded-xl disabled:opacity-60 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-card text-primary"
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-primary w-40 shrink-0">Anti-Spam Delay</label>
+                <input
+                  type="number"
+                  value={settings.antiSpamDelay ?? 2000}
+                  onChange={(e) => saveSetting({ ...settings, antiSpamDelay: Number(e.target.value) })}
+                  disabled={isSaving}
+                  min={0}
+                  className="w-28 h-9 border border-line rounded-xl px-3 text-sm font-semibold border-line rounded-xl disabled:opacity-60 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-card text-primary"
                 />
+                <span className="text-xs text-secondary">ms</span>
               </div>
               
               <div className="h-px bg-line" />
@@ -654,46 +607,14 @@ export default function AccountProfile({
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <div className="relative">
                   <input
-                    const [isRenaming, setIsRenaming] = useState(false);
-  const [renameInput, setRenameInput] = useState("");
-  const [renameError, setRenameError] = useState("");
-  const [isRenameSaving, setIsRenameSaving] = useState(false);
-
-  // Target resolver state
-  const [targetInput, setTargetInput] = useState("");
-  const [resolving, setResolving] = useState(false);
-  const [resolved, setResolved] = useState<type="checkbox"
+                    type="checkbox"
                     checked={settings.autoDetect || false}
                     onChange={(e) => saveSetting({ ...settings, autoDetect: e.target.checked })}
                     disabled={isSaving}
                     className="sr-only peer"
                   />
                   <div className="w-10 h-5 bg-slate-200 rounded-full peer-checked:bg-indigo-500 transition-colors peer-disabled:opacity-60" />
-                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-ResolvedTarget | null>(null);
-  const [resolveError, setResolveError] = useState("");
-
-  // Response form state
-  const [kw, setKw] = useState("");
-  const [res, setRes] = useState("");
-
-  // Filter Words input state
-  const [filterInput, setFilterInput] = useState("");
-
-  const accountId = account?.accountId;
-
-  useEffect(() => {
-    if (!accountId) return;
-
-    fetch(`/api/account/${encodeURIComponent(accountId)}/settings`)
-      .then((r) => r.json())
-      .then((data) => { 
-        if (data && typeof data === "object") {
-          setSettings(data); 
-        }
-      })
-      .catch(() => {});
-
-    fetch(`/api/account/${encode5" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-primary">Global Auto-Detect</p>
@@ -701,18 +622,11 @@ export default function AccountProfile({
                 </div>
               </label>
 
-              <div className="h-pxURIComponent(accountId)}/info`)
-      .then((r) => r.json())
-      .then((data) => { if (data) setAccountInfo( bg-line" />
+              <div className="h-px bg-line" />
               
               <label className="flex items-center gap-3 cursor-pointer select-none">
                 <div className="relative">
-data); })
-      .catch(() => {});
-  }, [accountId]);
-
-  const saveSetting = async (newSetting: BotSettings) => {
-    if (!                  <input
+                  <input
                     type="checkbox"
                     checked={settings.requireEmojiPrefix || false}
                     onChange={(e) => saveSetting({ ...settings, requireEmojiPrefix: e.target.checked })}
