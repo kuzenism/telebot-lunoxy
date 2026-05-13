@@ -99,7 +99,7 @@ export default function AccountProfile({
   const [kw, setKw] = useState("");
   const [res, setRes] = useState("");
 
-  // Filter Words local state (Biar enak ngetiknya pakai koma)
+  // Filter Words form state
   const [filterInput, setFilterInput] = useState("");
 
   const accountId = account?.accountId;
@@ -112,7 +112,6 @@ export default function AccountProfile({
       .then((data) => { 
         if (data && typeof data === "object") {
           setSettings(data); 
-          setFilterInput((data.filterWords || []).join(", "));
         }
       })
       .catch(() => {});
@@ -226,10 +225,21 @@ export default function AccountProfile({
   const removeResponse = (index: number) =>
     saveSetting({ ...settings, responses: (settings.responses || []).filter((_, i) => i !== index) });
 
-  // Fungsi khusus simpan Filter Words saat kotak input ditinggalkan (onBlur)
-  const saveFilterWords = () => {
-    const words = filterInput.split(",").map(w => w.trim()).filter(Boolean);
-    saveSetting({ ...settings, filterWords: words });
+  // Fungsi Tambah Filter Word
+  const addFilterWord = () => {
+    if (!filterInput.trim()) return;
+    const newWords = filterInput.split(",").map(w => w.trim().toLowerCase()).filter(Boolean);
+    const currentWords = settings.filterWords || [];
+    // Hapus duplikat
+    const uniqueWords = Array.from(new Set([...currentWords, ...newWords]));
+    saveSetting({ ...settings, filterWords: uniqueWords });
+    setFilterInput("");
+  };
+
+  // Fungsi Hapus Filter Word
+  const removeFilterWord = (wordToRemove: string) => {
+    const currentWords = settings.filterWords || [];
+    saveSetting({ ...settings, filterWords: currentWords.filter(w => w !== wordToRemove) });
   };
 
   if (!account) {
@@ -366,7 +376,7 @@ export default function AccountProfile({
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
           {/* ── Target Groups ── */}
-          <div className="bg-card rounded-2xl border border-line overflow-hidden">
+          <div className="bg-card rounded-2xl border border-line overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-line flex items-center gap-2">
               <Target size={15} className="text-indigo-500" />
               <h3 className="text-sm font-bold text-primary">Target Groups</h3>
@@ -375,7 +385,7 @@ export default function AccountProfile({
               </span>
             </div>
 
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 flex-1">
               <div className="flex gap-2">
                 <input
                   value={targetInput}
@@ -388,7 +398,7 @@ export default function AccountProfile({
                   onClick={resolveTarget}
                   disabled={!targetInput.trim() || resolving || !account.connected}
                   title={!account.connected ? "Akun harus terkoneksi" : "Cek target"}
-                  className="w-9 h-9 flex items-center justify-center bg-hover text-secondary rounded-xl hover:bg-indigo-100 hover:text-indigo-600 disabled:opacity-40 transition"
+                  className="w-9 h-9 flex items-center justify-center bg-hover text-secondary rounded-xl hover:bg-indigo-100 hover:text-indigo-600 disabled:opacity-40 transition shrink-0"
                 >
                   {resolving ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} />}
                 </button>
@@ -462,7 +472,7 @@ export default function AccountProfile({
           </div>
 
           {/* ── Auto Reply Rules ── */}
-          <div className="bg-card rounded-2xl border border-line overflow-hidden">
+          <div className="bg-card rounded-2xl border border-line overflow-hidden flex flex-col">
             <div className="px-5 py-4 border-b border-line flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <MessageSquare size={15} className="text-indigo-500" />
@@ -473,39 +483,7 @@ export default function AccountProfile({
               </span>
             </div>
 
-            {/* 🔥 KOTAK INPUT FILTER WORDS 🔥 */}
-            <div className="p-5 border-b border-line bg-rose-500/5">
-              <div className="flex items-center gap-2 mb-2">
-                <ShieldAlert size={14} className="text-rose-500" />
-                <label className="text-xs font-bold text-rose-600 uppercase tracking-wide">
-                  Filter Words / Kata Terlarang
-                </label>
-              </div>
-              <p className="text-[11px] text-slate-500 mb-2.5 leading-relaxed">
-                Abaikan pesan jika mengandung kata-kata di bawah ini (pisahkan dengan koma).
-              </p>
-              <div className="flex gap-2">
-                <input
-                  value={filterInput}
-                  onChange={(e) => setFilterInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") saveFilterWords();
-                  }}
-                  disabled={isSaving}
-                  placeholder="contoh: ubot, scam, nipu"
-                  className="flex-1 h-9 border border-rose-200/30 rounded-xl px-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100/20 transition placeholder:text-slate-500 bg-card text-primary"
-                />
-                <button
-                  onClick={saveFilterWords}
-                  disabled={isSaving}
-                  className="px-4 h-9 bg-rose-500 text-white text-xs font-semibold rounded-xl hover:bg-rose-600 disabled:opacity-50 transition shrink-0 flex items-center justify-center shadow-sm shadow-rose-200/10"
-                >
-                  {isSaving ? <Loader2 size={14} className="animate-spin" /> : "Simpan"}
-                </button>
-              </div>
-            </div>
-
-            <div className="p-5 space-y-3">
+            <div className="p-5 space-y-3 flex-1">
               <input
                 value={kw}
                 onChange={(e) => setKw(e.target.value)}
@@ -545,69 +523,212 @@ export default function AccountProfile({
               </div>
             </div>
           </div>
-        </div>
 
-        {/* ── Advanced ── */}
-        <div className="bg-card rounded-2xl border border-line overflow-hidden max-w-sm">
-          <div className="px-5 py-4 border-b border-line flex items-center gap-2">
-            <Settings size={15} className="text-indigo-500" />
-            <h3 className="text-sm font-bold text-primary">Advanced</h3>
-          </div>
-          <div className="p-5 space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-primary">Anti-Spam Delay</p>
-                <p className="text-xs text-secondary mt-0.5">Jeda antar pesan (ms)</p>
-              </div>
-              <input
-                type="number" step="500" min="500"
-                value={settings.antiSpamDelay || 2000}
-                onChange={(e) => saveSetting({ ...settings, antiSpamDelay: Number(e.target.value) })}
-                disabled={isSaving}
-                className="w-24 h-9 text-center text-sm font-semibold border border-line rounded-xl disabled:opacity-60 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-card text-primary"
-              />
+          {/* ── Filter Words (UI BARU FRESH ✨) ── */}
+          <div className="bg-card rounded-2xl border border-line overflow-hidden flex flex-col">
+            <div className="px-5 py-4 border-b border-line flex items-center gap-2 bg-rose-500/5">
+              <ShieldAlert size={15} className="text-rose-500" />
+              <h3 className="text-sm font-bold text-rose-600">Filter Words</h3>
+              <span className="ml-auto text-xs text-rose-500 bg-rose-500/10 pxAh, kamu benar banget! Itu dia cacatnya. Waktu diklik "Simpan", sistemnya memang nyimpen ke *-2 py-0.5 rounded-full font-semibold">
+                {(settings.filterWords || []).length} Kata Terlarang
+              </span>
             </div>
             
-            <div className="h-px bg-line" />
-            
-            <label className="flex items-center gap-3 cursor-pointer select-none">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={settings.autoDetect || false}
-                  onChange={(e) => saveSetting({ ...settings, autoDetect: e.target.checked })}
-                  disabled={isSaving}
-                  className="sr-only peer"
-                />
-                <div className="w-10 h-5 bg-slate-200 rounded-full peer-checked:bg-indigo-500 transition-colors peer-disabled:opacity-60" />
-                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-primary">Global Auto-Detect</p>
-                <p className="text-xs text-secondary">Balas semua pesan masuk dari target</p>
-              </div>
-            </label>
+            <div className="p-5 flex-1">
+              <p className="text-xs text-slate-500 mb-3database* bot, tapi **nggak ada wujud visualnya** di layar. Jadi kesannya kayak masuk ke ruang hampa dan kita nggak tahu kata apa aja yang udah berhasil leading-relaxed">
+                Bot otomatis diam (tidak membalas) jika mendeteksi kata-kata di bawah ini, meskipun keyword utamanya ada.
+              </p>
 
-            <div className="h-px bg-line" />
-            
-            <label className="flex items-center gap-3 cursor-pointer select-none">
-              <div className="relative">
+              <div className="flex gap-2 mb-4">
                 <input
-                  type="checkbox"
-                  checked={settings.requireEmojiPrefix || false}
-                  onChange={(e) => saveSetting({ ...settings, requireEmojiPrefix: e.target.checked })}
-                  disabled={isSaving}
-                  className="sr-only peer"
-                />
-                <div className="w-10 h-5 bg-slate-200 rounded-full peer-checked:bg-indigo-500 transition-colors peer-disabled:opacity-60" />
-                <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
-              </div>
-              <div>
-                <p className="text-sm font-medium text-primary">Filter Paid Promote (Wajib Emoji)</p>
-                <p className="text-xs text-secondary">Abaikan pesan yang depannya huruf/bukan emoji</p>
-              </div>
-            </label>
+                  value={filterInput}
+                  onChange={(e) keblokir.
 
+Desain UX yang bagus itu harusnya kayak nambahin "Tags" atau "Chips" (mirip kalau nambahin label). => setFilterInput(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") addFilterWord(); }}
+                  disabled={isSaving}
+                  placeholder="Ketik kata... (contoh: scam, nipu)"
+                  className="flex-1 h-9 border border-rose-200/50 rounded-xl px-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring Jadi begitu di-*Enter*, katanya langsung muncul berjejer rapi di bawahnya, dan bisa dihapus satu-satu pakai tombol silang (X).
+
+A-rose-100/30 transition placeholder:text-slate-400 bg-card text-primary"
+                />
+                <yo kita rombak total UI-nya biar jauh lebih *fresh* dan interaktif!
+
+### Perubahan UI yang akan terjadi:
+1. Kotak input akanbutton
+                  onClick={addFilterWord}
+                  disabled={isSaving || !filterInput.trim()}
+                  className="w-9 h-9 flex items-center justify-center bg-rose-50 text-rose-600 rounded-xl hover:bg-rose-100 hover:text-rose- selalu kosong menunggu ketikan baru.
+2. Tombol "Simpan" berubah jadi logo `+` (Tambah).
+3. Setelah ditambah, kata-kat700 disabled:opacity-40 transition shrink-0"
+                >
+                  {isSaving ? <Loader2 size={14} className="animate-spinanya akan muncul sebagai **Chips/Tag berwarna merah elegan** di bawah kotak input.
+4. Ada tombol silang `X` di masing-masing kata" /> : <Plus size={14} />}
+                </button>
+              </div>
+
+              {/* Tempat List Badges/Pills */}
+              <div className untuk menghapusnya secara spesifik.
+
+Silakan **Ctrl + A lalu Delete** semua isi file `src/components/AccountProfile.tsx` kamu, lalu temp="flex flex-wrap gap-2">
+                {(settings.filterWords || []).map((word, i) => (
+                  <div key={i} classNameel kode *full* yang udah diperbarui ini:
+```tsx
+import { useState, useEffect } from "react";
+import {
+  ArrowLeft,
+  Trash2,
+  Plus,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Loader2,
+  Power,
+  Settings,
+  MessageSquare,
+  Target,
+  Hash,
+  Pencil,
+  Check,
+  X,
+  Phone,
+  AtSign,
+  User,
+  ShieldAlert,
+} from "lucide-react";
+
+interface BotSettings {
+  isActive: boolean;
+  autoDetect: boolean
+  type: string;
+  username: string | null;
+  membersCount: number | null;
+}
+
+interface AccountInfo {
+  firstName: string | null;
+  lastName: string | null;
+  username: string | null;
+  phone: string | null;
+}
+
+interface AccountStatus {
+  accountId: string;
+  connected: boolean;
+  hasSession: boolean;
+}
+
+const defaultSettings: BotSettings = {
+  isActive: false,
+  auto
+  filterWords: [],
+};
+
+export default function AccountProfile({
+  account,
+  onBack,
+  onDelete,
+  onRename,
+  onRefresh,
+}: {
+  account: AccountStatus | undefined;
+  onBack: () => void;
+  onDelete: (id: string) => void;
+  onRename: (newId: string) => void;
+  onRefresh?: () => void;
+}) {
+  const [settings, setSettings] = useState<BotSettings>(defaultSettings);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+
+  // Account info
+  const [accountInfo, setAccountInfo] = useState<AccountInfo | null>(null);
+
+  // Rename state
+  sm font-semibold border border-line rounded-xl disabled:opacity-60 focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 outline-none bg-card text-primary"
+                />
+              </div>
+              
+              <div className="h-px bg-line" />
+              
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div className="relative">
+                  <input
+                    const [isRenaming, setIsRenaming] = useState(false);
+  const [renameInput, setRenameInput] = useState("");
+  const [renameError, setRenameError] = useState("");
+  const [isRenameSaving, setIsRenameSaving] = useState(false);
+
+  // Target resolver state
+  const [targetInput, setTargetInput] = useState("");
+  const [resolving, setResolving] = useState(false);
+  const [resolved, setResolved] = useState<type="checkbox"
+                    checked={settings.autoDetect || false}
+                    onChange={(e) => saveSetting({ ...settings, autoDetect: e.target.checked })}
+                    disabled={isSaving}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5 bg-slate-200 rounded-full peer-checked:bg-indigo-500 transition-colors peer-disabled:opacity-60" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-ResolvedTarget | null>(null);
+  const [resolveError, setResolveError] = useState("");
+
+  // Response form state
+  const [kw, setKw] = useState("");
+  const [res, setRes] = useState("");
+
+  // Filter Words input state
+  const [filterInput, setFilterInput] = useState("");
+
+  const accountId = account?.accountId;
+
+  useEffect(() => {
+    if (!accountId) return;
+
+    fetch(`/api/account/${encodeURIComponent(accountId)}/settings`)
+      .then((r) => r.json())
+      .then((data) => { 
+        if (data && typeof data === "object") {
+          setSettings(data); 
+        }
+      })
+      .catch(() => {});
+
+    fetch(`/api/account/${encode5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-primary">Global Auto-Detect</p>
+                  <p className="text-xs text-secondary">Balas semua pesan masuk dari target</p>
+                </div>
+              </label>
+
+              <div className="h-pxURIComponent(accountId)}/info`)
+      .then((r) => r.json())
+      .then((data) => { if (data) setAccountInfo( bg-line" />
+              
+              <label className="flex items-center gap-3 cursor-pointer select-none">
+                <div className="relative">
+data); })
+      .catch(() => {});
+  }, [accountId]);
+
+  const saveSetting = async (newSetting: BotSettings) => {
+    if (!                  <input
+                    type="checkbox"
+                    checked={settings.requireEmojiPrefix || false}
+                    onChange={(e) => saveSetting({ ...settings, requireEmojiPrefix: e.target.checked })}
+                    disabled={isSaving}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5 bg-slate-200 rounded-full peer-checked:bg-indigo-500 transition-colors peer-disabled:opacity-60" />
+                  <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform peer-checked:translate-x-5" />
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-primary">Filter Paid Promote (Wajib Emoji)</p>
+                  <p className="text-xs text-secondary">Abaikan pesan yang depannya huruf/bukan emoji</p>
+                </div>
+              </label>
+
+            </div>
           </div>
         </div>
       </div>
