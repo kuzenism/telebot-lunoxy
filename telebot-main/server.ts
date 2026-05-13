@@ -40,6 +40,7 @@ interface BotSettings {
   responses: { keyword: string; response: string }[];
   antiSpamDelay: number;
   requireEmojiPrefix: boolean; // <-- Fitur baru
+  filterWords: string[]; // <-- Fitur Kata Terlarang
 }
 
 const defaultSettings: BotSettings = {
@@ -49,6 +50,7 @@ const defaultSettings: BotSettings = {
   responses: [],
   antiSpamDelay: 2000,
   requireEmojiPrefix: false, // <-- Default mati
+  filterWords: [], // <-- Default kosong
 };
 
 const sanitizeSettings = (input: Partial<BotSettings> | null | undefined): BotSettings => {
@@ -67,7 +69,8 @@ const sanitizeSettings = (input: Partial<BotSettings> | null | undefined): BotSe
     antiSpamDelay: Number.isFinite(Number(merged.antiSpamDelay))
       ? Number(merged.antiSpamDelay)
       : defaultSettings.antiSpamDelay,
-    requireEmojiPrefix: Boolean(merged.requireEmojiPrefix), // <-- Tambahan
+    requireEmojiPrefix: Boolean(merged.requireEmojiPrefix),
+    filterWords: Array.isArray(merged.filterWords) ? merged.filterWords.map(String) : [],
   };
 };
 
@@ -451,12 +454,20 @@ const handleIncomingMessage = async (
 
   const msgText = rawText.toLowerCase();
 
-  // 🛑 FITUR BARU: Hanya balas jika karakter pertama adalah Emoji (Roket, Tas, dll)
+  // 🛑 FITUR BARU: Wajib Diawali Emoji (Filter Paid Promote)
   if (settings.requireEmojiPrefix) {
-    // Regex ini mendeteksi apakah karakter paling depan adalah emoji
     const startsWithEmoji = /^[\p{Emoji_Presentation}\p{Extended_Pictographic}]/u.test(rawText.trim());
     if (!startsWithEmoji) {
-      return; // Abaikan diam-diam kalau pesan PP (tidak diawali emoji)
+      return; 
+    }
+  }
+
+  // 🛑 FITUR BARU: Filter Words (Kata Terlarang)
+  if (settings.filterWords && settings.filterWords.length > 0) {
+    // Mengecek apakah di dalam pesan ada kata terlarang
+    const isBlocked = settings.filterWords.some(word => matchesSingleKeyword(msgText, word));
+    if (isBlocked) {
+      return; // Langsung hentikan/abaikan pesan ini tanpa membalas
     }
   }
 
