@@ -399,7 +399,7 @@ export default function App() {
 
               <footer className="pt-10 pb-5">
                 <p className="text-[11px] text-slate-400 text-center">
-                  © {new Date().getFullYear()} raditdev
+                  © {new Date().getFullYear()} kzndev
                 </p>
               </footer>
             </motion.div>
@@ -461,7 +461,7 @@ export default function App() {
 
               <footer className="pt-6 pb-5">
                 <p className="text-[11px] text-slate-400 text-center">
-                  © {new Date().getFullYear()} raditdev
+                  © {new Date().getFullYear()} kzndev
                 </p>
               </footer>
             </motion.div>
@@ -520,7 +520,7 @@ export default function App() {
 
               <footer className="pt-10 pb-5">
                 <p className="text-[11px] text-slate-400 text-center">
-                  © {new Date().getFullYear()} raditdev
+                  © {new Date().getFullYear()} kzndev
                 </p>
               </footer>
             </motion.div>
