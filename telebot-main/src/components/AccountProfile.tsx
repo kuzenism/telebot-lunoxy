@@ -18,6 +18,7 @@ import {
   Phone,
   AtSign,
   User,
+  ShieldAlert,
 } from "lucide-react";
 
 interface BotSettings {
@@ -26,7 +27,8 @@ interface BotSettings {
   targetGroups: string[];
   responses: { keyword: string; response: string }[];
   antiSpamDelay: number;
-  requireEmojiPrefix: boolean; // <-- Fitur Wajib Emoji ditambahkan di sini
+  requireEmojiPrefix: boolean;
+  filterWords: string[]; // <-- Fitur Kata Terlarang
 }
 
 interface ResolvedTarget {
@@ -57,7 +59,8 @@ const defaultSettings: BotSettings = {
   targetGroups: [],
   responses: [],
   antiSpamDelay: 2000,
-  requireEmojiPrefix: false, // <-- Default mati
+  requireEmojiPrefix: false,
+  filterWords: [],
 };
 
 export default function AccountProfile({
@@ -96,6 +99,9 @@ export default function AccountProfile({
   const [kw, setKw] = useState("");
   const [res, setRes] = useState("");
 
+  // Filter Words local state (Biar enak ngetiknya pakai koma)
+  const [filterInput, setFilterInput] = useState("");
+
   const accountId = account?.accountId;
 
   useEffect(() => {
@@ -103,7 +109,12 @@ export default function AccountProfile({
 
     fetch(`/api/account/${encodeURIComponent(accountId)}/settings`)
       .then((r) => r.json())
-      .then((data) => { if (data && typeof data === "object") setSettings(data); })
+      .then((data) => { 
+        if (data && typeof data === "object") {
+          setSettings(data); 
+          setFilterInput((data.filterWords || []).join(", "));
+        }
+      })
       .catch(() => {});
 
     fetch(`/api/account/${encodeURIComponent(accountId)}/info`)
@@ -214,6 +225,12 @@ export default function AccountProfile({
 
   const removeResponse = (index: number) =>
     saveSetting({ ...settings, responses: (settings.responses || []).filter((_, i) => i !== index) });
+
+  // Fungsi khusus simpan Filter Words saat kotak input ditinggalkan (onBlur)
+  const saveFilterWords = () => {
+    const words = filterInput.split(",").map(w => w.trim()).filter(Boolean);
+    saveSetting({ ...settings, filterWords: words });
+  };
 
   if (!account) {
     return (
@@ -446,12 +463,35 @@ export default function AccountProfile({
 
           {/* ── Auto Reply Rules ── */}
           <div className="bg-card rounded-2xl border border-line overflow-hidden">
-            <div className="px-5 py-4 border-b border-line flex items-center gap-2">
-              <MessageSquare size={15} className="text-indigo-500" />
-              <h3 className="text-sm font-bold text-primary">Auto Reply Rules</h3>
-              <span className="ml-auto text-xs text-secondary bg-hover px-2 py-0.5 rounded-full">
+            <div className="px-5 py-4 border-b border-line flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <MessageSquare size={15} className="text-indigo-500" />
+                <h3 className="text-sm font-bold text-primary">Auto Reply Rules</h3>
+              </div>
+              <span className="text-xs text-secondary bg-hover px-2 py-0.5 rounded-full">
                 {(settings.responses || []).length}
               </span>
+            </div>
+
+            {/* 🔥 KOTAK INPUT FILTER WORDS 🔥 */}
+            <div className="p-5 border-b border-line bg-rose-500/5">
+              <div className="flex items-center gap-2 mb-2">
+                <ShieldAlert size={14} className="text-rose-500" />
+                <label className="text-xs font-bold text-rose-600 uppercase tracking-wide">
+                  Filter Words / Kata Terlarang
+                </label>
+              </div>
+              <p className="text-[11px] text-slate-500 mb-2.5 leading-relaxed">
+                Abaikan pesan jika mengandung kata-kata di bawah ini (pisahkan dengan koma). Otomatis tersimpan saat kamu klik di luar kotak.
+              </p>
+              <input
+                value={filterInput}
+                onChange={(e) => setFilterInput(e.target.value)}
+                onBlur={saveFilterWords}
+                disabled={isSaving}
+                placeholder="contoh: scam, nipu, orang miskin"
+                className="w-full h-9 border border-rose-200 rounded-xl px-3 text-sm outline-none focus:border-rose-400 focus:ring-2 focus:ring-rose-100 transition placeholder:text-slate-300 bg-white text-primary"
+              />
             </div>
 
             <div className="p-5 space-y-3">
@@ -519,7 +559,6 @@ export default function AccountProfile({
             
             <div className="h-px bg-line" />
             
-            {/* Toggle Global Auto-Detect */}
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <div className="relative">
                 <input
@@ -540,7 +579,6 @@ export default function AccountProfile({
 
             <div className="h-px bg-line" />
             
-            {/* Toggle Wajib Emoji (Filter Paid Promote) */}
             <label className="flex items-center gap-3 cursor-pointer select-none">
               <div className="relative">
                 <input
