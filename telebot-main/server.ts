@@ -992,8 +992,7 @@ autoInit();
 
 // ─── Static / Vite Dev ────────────────────────────────────────────────────────
 
-if (process.env.NODE_ENV !== "production") {
-  const startServer = async () => {
+const startServer = async () => {
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
     app.use(vite.middlewares);
@@ -1002,8 +1001,10 @@ if (process.env.NODE_ENV !== "production") {
     app.use(express.static(distPath));
     app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
   }
+
   httpServer.listen(PORT, "0.0.0.0", () => {
     console.log(`TeleOffer running on port ${PORT}`);
   });
 };
+
 startServer();
