@@ -48,7 +48,7 @@ const defaultSettings: BotSettings = {
   autoDetect: false,
   targetGroups: [],
   responses: [],
-  antiSpamDelay: 2000,
+  antiSpamDelay: 1500,
   requireEmojiPrefix: false, // <-- Default mati
   filterWords: [], // <-- Default kosong
 };
