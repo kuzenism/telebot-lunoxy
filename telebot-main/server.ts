@@ -993,14 +993,17 @@ autoInit();
 // ─── Static / Vite Dev ────────────────────────────────────────────────────────
 
 if (process.env.NODE_ENV !== "production") {
-  const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
-  app.use(vite.middlewares);
-} else {
-  const distPath = path.join(process.cwd(), "dist");
-  app.use(express.static(distPath));
-  app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
-}
-
-httpServer.listen(PORT, "0.0.0.0", () => {
-  console.log(`TeleOffer running on port ${PORT}`);
-});
+  const startServer = async () => {
+  if (process.env.NODE_ENV !== "production") {
+    const vite = await createViteServer({ server: { middlewareMode: true }, appType: "spa" });
+    app.use(vite.middlewares);
+  } else {
+    const distPath = path.join(process.cwd(), "dist");
+    app.use(express.static(distPath));
+    app.get("*", (_req, res) => res.sendFile(path.join(distPath, "index.html")));
+  }
+  httpServer.listen(PORT, "0.0.0.0", () => {
+    console.log(`TeleOffer running on port ${PORT}`);
+  });
+};
+startServer();
